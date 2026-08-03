@@ -1,0 +1,9 @@
+livekit-agents
+livekit-api
+fastapi
+uvicorn
+python-dotenv
+httpx
+openai
+aiosqlite
+pytest
