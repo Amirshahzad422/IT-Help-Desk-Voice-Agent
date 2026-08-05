@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import subprocess
+import uuid
 
 from pathlib import Path
 
@@ -31,7 +32,7 @@ def synthesize(
     request: SpeechRequest
 ):
 
-    output = OUTPUT_DIR / "output.wav"
+    output = OUTPUT_DIR / f"{uuid.uuid4()}.wav"
 
     subprocess.run(
         [
@@ -46,5 +47,5 @@ def synthesize(
     )
 
     return {
-        "audio": output
+        "audio": str(output)
     }
