@@ -1,0 +1,12 @@
+livekit-agents
+livekit-api
+livekit-plugins-openai
+livekit-plugins-silero
+fastapi
+uvicorn
+python-dotenv
+httpx
+openai
+aiosqlite
+pytest
+faster-whisper
