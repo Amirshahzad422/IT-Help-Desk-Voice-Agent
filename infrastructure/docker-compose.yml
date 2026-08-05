@@ -1,7 +1,0 @@
-services:
-  livekit:
-    image: livekit/livekit-server:latest
-    command: --dev
-    ports:
-      - "7880:7880"
-      - "7881:7881"

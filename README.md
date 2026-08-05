@@ -10,6 +10,8 @@ A self-hosted AI-powered voice-enabled IT Help Desk Agent built using LiveKit, O
 - LiveKit Server
 - Ollama (llama3.2:3b)
 - SQLite
+- faster-whisper
+- Piper
 
 ## Setup
 
@@ -49,8 +51,7 @@ pip install -r requirements.txt
 ### 4. Start LiveKit
 
 ```bash
-cd infrastructure
-docker compose up -d
+docker compose -f infra/docker-compose.yml up
 ```
 
 ### 5. Start Ollama
@@ -58,3 +59,26 @@ docker compose up -d
 ```bash
 ollama serve
 ```
+
+
+### 6. Start Whisper
+
+powershell
+uvicorn services.whisper_server:app --host 127.0.0.1 --port 8000
+
+
+### 7. Start Piper
+
+powershell
+uvicorn services.piper_server:app --host 127.0.0.1 --port 5000
+
+
+### 8. Start Agent Worker
+
+powershell
+python -m agent.agent dev
+
+Expected successful line:
+
+text
+registered worker
