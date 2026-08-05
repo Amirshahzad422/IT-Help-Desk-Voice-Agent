@@ -1,33 +1,16 @@
-import os
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
-# LiveKit
-LIVEKIT_URL = os.getenv("LIVEKIT_URL", "ws://localhost:7880")
-
+LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
-
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
 
-# Ollama
-OLLAMA_URL = os.getenv(
-    "OLLAMA_URL",
-    "http://localhost:11434/v1"
-)
+OLLAMA_URL = os.getenv("OLLAMA_URL")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
 
-OLLAMA_MODEL = "llama3.2:3b"
-
-# Whisper 
-WHISPER_URL = os.getenv(
-    "WHISPER_URL",
-    "http://localhost:8000/v1"
-)
-
-# Piper 
-PIPER_URL = os.getenv(
-    "PIPER_URL",
-    "http://localhost:5000"
-)
+WHISPER_URL = os.getenv("WHISPER_URL")
+PIPER_URL = os.getenv("PIPER_URL")
 
 MAX_TOKENS = 100
