@@ -49,7 +49,7 @@ def health_check():
     }
 
 
-@app.post("/token")
+@app.post("/api/token")
 async def generate_token():
     try:
         # Get currently active rooms

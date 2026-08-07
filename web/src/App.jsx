@@ -5,32 +5,40 @@ import Room from "./pages/Room";
 
 function App() {
   const [showModal, setShowModal] = useState(false);
+
   const [tokenData, setTokenData] = useState(null);
   const [userName, setUserName] = useState("");
+
+  const handleConnected = (token, name) => {
+    setTokenData(token);
+    setUserName(name);
+    setShowModal(false);
+  };
+
+  const handleLeave = () => {
+    setTokenData(null);
+    setUserName("");
+    setShowModal(false);
+  };
 
   if (tokenData) {
     return (
       <Room
         tokenData={tokenData}
         userName={userName}
+        onLeave={handleLeave}
       />
     );
   }
 
   return (
     <>
-      <Home
-        onStart={() => setShowModal(true)}
-      />
+      <Home onStart={() => setShowModal(true)} />
 
       <NameModal
-          open={showModal}
-          onClose={() => setShowModal(false)}
-          onConnected={(data, name) => {
-              setShowModal(false);
-              setUserName(name);
-              setTokenData(data);
-          }}
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onConnected={handleConnected}
       />
     </>
   );

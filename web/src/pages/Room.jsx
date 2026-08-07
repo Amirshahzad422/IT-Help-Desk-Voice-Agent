@@ -1,13 +1,22 @@
-import { LiveKitRoom, useParticipants } from "@livekit/components-react";
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  BarVisualizer,
+  useParticipants,
+} from "@livekit/components-react";
 
 import CallHeader from "../components/room/CallHeader";
 import UserCard from "../components/room/UserCard";
 import AgentStatus from "../components/room/AgentStatus";
 import RoomInfo from "../components/room/RoomInfo";
 import TranscriptPanel from "../components/room/TranscriptPanel";
-import CallControls from "../components/room/CallControls";
+import ControlBar from "../components/room/ControlBar";
 
-function RoomContent({ tokenData, userName }) {
+function RoomContent({
+  tokenData,
+  userName,
+  onLeave,
+}) {
   const participants = useParticipants();
 
   const agentConnected = participants.length > 1;
@@ -15,10 +24,14 @@ function RoomContent({ tokenData, userName }) {
   return (
     <div className="min-h-screen bg-gray-100">
 
+      {/* Play remote audio */}
+      <RoomAudioRenderer />
+
       <CallHeader room={tokenData.room} />
 
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="max-w-7xl mx-auto px-8 py-10">
 
+        {/* Top Cards */}
         <div className="grid md:grid-cols-3 gap-8">
 
           <UserCard
@@ -33,13 +46,40 @@ function RoomContent({ tokenData, userName }) {
 
         </div>
 
-        <div className="mt-8">
+        {/* Voice Activity */}
+        <div className="mt-12">
 
-          <TranscriptPanel />
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
+
+            <h2 className="text-xl font-bold mb-6">
+              Voice Activity
+            </h2>
+
+            <div className="flex justify-center">
+
+              <BarVisualizer />
+
+            </div>
+
+          </div>
 
         </div>
 
-        <CallControls />
+        {/* Transcript */}
+        <div className="mt-12">
+
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-6">
+
+            <TranscriptPanel />
+
+          </div>
+
+        </div>
+
+        {/* Call Controls */}
+        <ControlBar
+          onLeave={onLeave}
+        />
 
       </div>
 
@@ -47,7 +87,11 @@ function RoomContent({ tokenData, userName }) {
   );
 }
 
-function Room({ tokenData, userName }) {
+function Room({
+  tokenData,
+  userName,
+  onLeave,
+}) {
   return (
     <LiveKitRoom
       serverUrl={tokenData.server_url}
@@ -59,6 +103,7 @@ function Room({ tokenData, userName }) {
       <RoomContent
         tokenData={tokenData}
         userName={userName}
+        onLeave={onLeave}
       />
     </LiveKitRoom>
   );

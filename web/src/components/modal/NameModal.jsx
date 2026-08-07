@@ -3,15 +3,17 @@ import { User, X } from "lucide-react";
 import useToken from "../../hooks/useToken";
 import toast from "react-hot-toast";
 
-function NameModal({ open, onClose, onConnected }) {
+function NameModal({
+  open,
+  onClose,
+  onConnected,
+}) {
   const [name, setName] = useState("");
   const { fetchToken, loading } = useToken();
   const handleContinue = async () => {
     try {
         const tokenData = await fetchToken();
-
         toast.success("Connected successfully!");
-
         onConnected(tokenData, name);
 
         // Next step:
