@@ -1,8 +1,9 @@
 import os
 import uuid
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException
+
 from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from livekit import api
 from livekit.api import LiveKitAPI
 from livekit.protocol.room import ListRoomsRequest
@@ -10,9 +11,11 @@ from livekit.protocol.room import ListRoomsRequest
 
 load_dotenv()
 
+
 app = FastAPI(
     title="IT Help Desk Voice Agent Token Server"
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,22 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
+
 
 if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
     raise RuntimeError(
         "LiveKit API credentials are missing. Check your .env file."
     )
-
-
-# LiveKit server API client
-livekit_api = LiveKitAPI(
-    url=LIVEKIT_URL,
-    api_key=LIVEKIT_API_KEY,
-    api_secret=LIVEKIT_API_SECRET
-)
 
 
 @app.get("/")
@@ -49,9 +46,19 @@ def health_check():
     }
 
 
-@app.post("/api/token")
+@app.post("/token")
 async def generate_token():
+
+    livekit_api = None
+
     try:
+        # Create LiveKit API client inside the async request
+        livekit_api = LiveKitAPI(
+            url=LIVEKIT_URL,
+            api_key=LIVEKIT_API_KEY,
+            api_secret=LIVEKIT_API_SECRET
+        )
+
         # Get currently active rooms
         rooms_response = await livekit_api.room.list_rooms(
             ListRoomsRequest()
@@ -62,7 +69,7 @@ async def generate_token():
             for room in rooms_response.rooms
         ]
 
-        # Generate room name and avoid collisions
+        # Generate unique room name
         while True:
             room_name = f"helpdesk-{uuid.uuid4().hex[:8]}"
 
@@ -72,7 +79,7 @@ async def generate_token():
         # Generate participant identity
         identity = f"user-{uuid.uuid4().hex[:6]}"
 
-        # Create LiveKit JWT token
+        # Generate LiveKit JWT token
         token = (
             api.AccessToken(
                 LIVEKIT_API_KEY,
@@ -102,3 +109,7 @@ async def generate_token():
             status_code=500,
             detail=str(e)
         )
+
+    finally:
+        if livekit_api:
+            await livekit_api.aclose()

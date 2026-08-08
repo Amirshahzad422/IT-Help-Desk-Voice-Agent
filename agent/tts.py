@@ -70,3 +70,6 @@ class PiperChunkedStream(lk_tts.ChunkedStream):
         )
 
         output_emitter.push(audio_bytes)
+
+        # Tell LiveKit the audio is finished
+        output_emitter.end_input()

@@ -11,6 +11,7 @@ import AgentStatus from "../components/room/AgentStatus";
 import RoomInfo from "../components/room/RoomInfo";
 import TranscriptPanel from "../components/room/TranscriptPanel";
 import ControlBar from "../components/room/ControlBar";
+import RpcHandler from "../components/RpcHandler";
 
 function RoomContent({
   tokenData,
@@ -24,29 +25,25 @@ function RoomContent({
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* Play remote audio */}
       <RoomAudioRenderer />
+
+      {/* RPC listener */}
+      <RpcHandler />
 
       <CallHeader room={tokenData.room} />
 
       <div className="max-w-7xl mx-auto px-8 py-10">
 
-        {/* Top Cards */}
         <div className="grid md:grid-cols-3 gap-8">
 
-          <UserCard
-            name={userName}
-          />
+          <UserCard name={userName} />
 
-          <AgentStatus
-            connected={agentConnected}
-          />
+          <AgentStatus connected={agentConnected} />
 
           <RoomInfo />
 
         </div>
 
-        {/* Voice Activity */}
         <div className="mt-12">
 
           <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
@@ -56,16 +53,13 @@ function RoomContent({
             </h2>
 
             <div className="flex justify-center">
-
               <BarVisualizer />
-
             </div>
 
           </div>
 
         </div>
 
-        {/* Transcript */}
         <div className="mt-12">
 
           <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-6">
@@ -76,10 +70,7 @@ function RoomContent({
 
         </div>
 
-        {/* Call Controls */}
-        <ControlBar
-          onLeave={onLeave}
-        />
+        <ControlBar onLeave={onLeave} />
 
       </div>
 
