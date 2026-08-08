@@ -10,3 +10,5 @@ openai
 aiosqlite
 pytest
 faster-whisper
+python-multipart
+piper-tts
