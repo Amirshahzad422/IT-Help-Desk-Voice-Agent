@@ -53,3 +53,9 @@ pip install -r requirements.txt
 ```bash
 python.exe scripts\run_dev.py
 ```
+### 5. Start Frontend
+
+Open a new terminal:
+```bash
+npm run dev
+```
