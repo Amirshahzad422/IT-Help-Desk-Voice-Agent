@@ -48,37 +48,8 @@ or
 pip install -r requirements.txt
 ```
 
-### 4. Start LiveKit
+### 4. Start Backend File
 
 ```bash
-docker compose -f infra/docker-compose.yml up
+python.exe scripts\run_dev.py
 ```
-
-### 5. Start Ollama
-
-```bash
-ollama serve
-```
-
-
-### 6. Start Whisper
-
-powershell
-uvicorn services.whisper_server:app --host 127.0.0.1 --port 8000
-
-
-### 7. Start Piper
-
-powershell
-uvicorn services.piper_server:app --host 127.0.0.1 --port 5000
-
-
-### 8. Start Agent Worker
-
-powershell
-python -m agent.agent dev
-
-Expected successful line:
-
-text
-registered worker
