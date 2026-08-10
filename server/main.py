@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from livekit import api
 from livekit.api import LiveKitAPI
 from livekit.protocol.room import ListRoomsRequest
+from pydantic import BaseModel
 
 
 load_dotenv()
@@ -39,6 +40,10 @@ if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
     )
 
 
+class TokenRequest(BaseModel):
+    username: str
+
+
 @app.get("/")
 def health_check():
     return {
@@ -47,12 +52,20 @@ def health_check():
 
 
 @app.post("/token")
-async def generate_token():
+async def generate_token(request: TokenRequest):
+
+    username = request.username.strip().lower()
+
+    if not username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username is required."
+        )
 
     livekit_api = None
 
     try:
-        # Create LiveKit API client inside the async request
+        # Create LiveKit API client
         livekit_api = LiveKitAPI(
             url=LIVEKIT_URL,
             api_key=LIVEKIT_API_KEY,
@@ -86,6 +99,9 @@ async def generate_token():
                 LIVEKIT_API_SECRET
             )
             .with_identity(identity)
+            .with_attributes({
+                "helpdesk_username": username
+            })
             .with_grants(
                 api.VideoGrants(
                     room_join=True,
@@ -101,6 +117,7 @@ async def generate_token():
             "server_url": LIVEKIT_URL,
             "room": room_name,
             "participant": identity,
+            "username": username,
             "token": token
         }
 

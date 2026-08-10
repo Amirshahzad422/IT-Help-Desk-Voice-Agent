@@ -4,8 +4,11 @@ const api = axios.create({
   baseURL: "/api",
 });
 
-export const getToken = async () => {
-  const response = await api.post("/token");
+export const getToken = async (username) => {
+  const response = await api.post("/token", {
+    username: username.trim(),
+  });
+
   return response.data;
 };
 

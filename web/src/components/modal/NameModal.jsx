@@ -8,20 +8,31 @@ function NameModal({
   onClose,
   onConnected,
 }) {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const { fetchToken, loading } = useToken();
-  const handleContinue = async () => {
-    try {
-        const tokenData = await fetchToken();
-        toast.success("Connected successfully!");
-        onConnected(tokenData, name);
 
-        // Next step:
-        // We'll pass tokenData into the LiveKit room.
-    } catch (err) {
-        toast.error("Connection failed.");
+  const handleContinue = async () => {
+    const normalizedUsername = username.trim().toLowerCase();
+
+    if (!normalizedUsername) {
+      toast.error("Please enter your username.");
+      return;
     }
-};
+
+    try {
+      const tokenData = await fetchToken(normalizedUsername);
+
+      onConnected(tokenData, normalizedUsername);
+    } catch (err) {
+      console.error("Token request failed:", err);
+
+      const message =
+        err?.response?.data?.detail ||
+        "Unable to connect to support server.";
+
+      toast.error(message);
+    }
+  };
 
   if (!open) return null;
 
@@ -34,15 +45,13 @@ function NameModal({
           onClick={onClose}
           className="absolute right-5 top-5 text-gray-500 hover:text-black"
         >
-          <X size={22}/>
+          <X size={22} />
         </button>
 
         <div className="flex justify-center mb-5">
-
           <div className="bg-blue-100 p-4 rounded-full">
-            <User className="text-blue-600" size={34}/>
+            <User className="text-blue-600" size={34} />
           </div>
-
         </div>
 
         <h2 className="text-3xl font-bold text-center">
@@ -50,20 +59,25 @@ function NameModal({
         </h2>
 
         <p className="text-center text-gray-500 mt-2 mb-7">
-          Enter your name to begin voice support.
+          Enter your username to begin voice support.
         </p>
 
         <input
           type="text"
-          placeholder="Your full name"
-          value={name}
-          onChange={(e)=>setName(e.target.value)}
+          placeholder="Your username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && username.trim() && !loading) {
+              handleContinue();
+            }
+          }}
           className="w-full border rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         <button
-        onClick={handleContinue}
-        disabled={!name.trim() || loading}
+          onClick={handleContinue}
+          disabled={!username.trim() || loading}
           className="mt-6 w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-gray-300"
         >
           {loading ? "Connecting..." : "Continue"}
