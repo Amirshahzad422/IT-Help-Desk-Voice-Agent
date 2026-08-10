@@ -1,4 +1,5 @@
-from livekit.agents import function_tool
+from livekit.agents import function_tool, get_job_context
+from agent.rpc import emit_account_unblocked_rpc
 
 from agent.db import (
     lookup_user,
@@ -84,22 +85,42 @@ def tool_create_user(
         "Use this only after confirming the user exists and their account is locked."
     )
 )
-def tool_unblock_account(username: str) -> dict:
-    """
-    Unlock a user's account.
-    """
-    success = unblock_account(username)
+async def tool_unblock_account(username: str) -> dict:
+    user = lookup_user(username)
 
-    if success:
+    if user is None:
         return {
-            "unblocked": True,
+            "unblocked": False,
             "username": username,
-            "status": "Active",
-            "message": f"Account {username} has been unblocked.",
+            "message": f"Could not unblock account {username}. User was not found.",
         }
 
+    if user["status"] != "Locked":
+        return {
+            "unblocked": False,
+            "username": user["username"],
+            "status": user["status"],
+            "message": (
+                f"Account {user['username']} is {user['status']}; "
+                "only Locked accounts can be unblocked."
+            ),
+        }
+
+    if not unblock_account(user["username"]):
+        return {
+            "unblocked": False,
+            "username": user["username"],
+            "message": "The account could not be unblocked.",
+        }
+
+    # Runs only after SQLite successfully changed Locked → Active.
+    job_ctx = get_job_context(required=False)
+    if job_ctx is not None:
+        await emit_account_unblocked_rpc(job_ctx, user["username"])
+
     return {
-        "unblocked": False,
-        "username": username,
-        "message": f"Could not unblock account {username}. User was not found.",
+        "unblocked": True,
+        "username": user["username"],
+        "status": "Active",
+        "message": f"Account {user['username']} has been unblocked.",
     }

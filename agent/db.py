@@ -5,6 +5,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATABASE_PATH = BASE_DIR / "database" / "helpdesk.db"
 
+def normalize_username(username: str) -> str:
+    return username.strip().lower()
 
 def get_connection():
     """Create and return a SQLite database connection."""
@@ -14,18 +16,14 @@ def get_connection():
 
 
 def lookup_user(username: str):
-    """
-    Look up a user by username.
-    Returns a dictionary if found, otherwise None.
-    """
+    username = normalize_username(username)
+
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
-        "SELECT * FROM users WHERE username = ?",
-        (username,)
+        "SELECT * FROM users WHERE lower(trim(username)) = ?",
+        (username,),
     )
-
     row = cursor.fetchone()
     conn.close()
 
@@ -33,55 +31,48 @@ def lookup_user(username: str):
 
 
 def create_user(username: str, full_name: str, email: str):
-    """
-    Create a new user.
-    New users are Active by default.
-    Returns True if successful, False if username/email already exists.
-    """
+    username = normalize_username(username)
+    full_name = full_name.strip()
+    email = email.strip().lower()
+
+    if not username or not full_name or not email:
+        return False
+
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
         cursor.execute(
             """
-            INSERT INTO users
-            (username, full_name, email, status)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (username, full_name, email, status)
+            VALUES (?, ?, ?, 'Active')
             """,
-            (username, full_name, email, "Active")
+            (username, full_name, email),
         )
-
         conn.commit()
         return True
-
     except sqlite3.IntegrityError:
         return False
-
     finally:
         conn.close()
 
 
 def unblock_account(username: str):
-    """
-    Change a user's status to Active.
-    Returns True if updated successfully.
-    """
+    username = normalize_username(username)
+
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         UPDATE users
         SET status = 'Active'
-        WHERE username = ?
+        WHERE lower(trim(username)) = ?
+          AND status = 'Locked'
         """,
-        (username,)
+        (username,),
     )
-
     conn.commit()
-
-    success = cursor.rowcount > 0
-
+    success = cursor.rowcount == 1
     conn.close()
 
     return success
