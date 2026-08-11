@@ -9,13 +9,24 @@ DATABASE_PATH = BASE_DIR / "database" / "helpdesk.db"
 # This intentionally accepts ordinary addresses such as name@gmail.com and
 # username@example.com, without trying to implement the entire email RFC.
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+SPOKEN_EMAIL_REPLACEMENTS = (
+    (re.compile(r"\s+at\s+", re.IGNORECASE), "@"),
+    (re.compile(r"\s+dot\s+", re.IGNORECASE), "."),
+)
 
 def normalize_username(username: str) -> str:
     return username.strip().lower()
 
 
 def is_valid_email(email: str) -> bool:
-    return bool(EMAIL_PATTERN.fullmatch(email.strip()))
+    return bool(EMAIL_PATTERN.fullmatch(normalize_email(email)))
+
+
+def normalize_email(email: str) -> str:
+    email = email.strip().lower()
+    for pattern, replacement in SPOKEN_EMAIL_REPLACEMENTS:
+        email = pattern.sub(replacement, email)
+    return re.sub(r"\s+", "", email)
 
 def get_connection():
     """Create and return a SQLite database connection."""
@@ -42,7 +53,7 @@ def lookup_user(username: str):
 def create_user(username: str, full_name: str, email: str):
     username = normalize_username(username)
     full_name = full_name.strip()
-    email = email.strip().lower()
+    email = normalize_email(email)
 
     if not username or not full_name or not is_valid_email(email):
         return False
