@@ -1,12 +1,21 @@
 import sqlite3
+import re
 from pathlib import Path
 
 # Database path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATABASE_PATH = BASE_DIR / "database" / "helpdesk.db"
 
+# This intentionally accepts ordinary addresses such as name@gmail.com and
+# username@example.com, without trying to implement the entire email RFC.
+EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
 def normalize_username(username: str) -> str:
     return username.strip().lower()
+
+
+def is_valid_email(email: str) -> bool:
+    return bool(EMAIL_PATTERN.fullmatch(email.strip()))
 
 def get_connection():
     """Create and return a SQLite database connection."""
@@ -35,7 +44,7 @@ def create_user(username: str, full_name: str, email: str):
     full_name = full_name.strip()
     email = email.strip().lower()
 
-    if not username or not full_name or not email:
+    if not username or not full_name or not is_valid_email(email):
         return False
 
     conn = get_connection()

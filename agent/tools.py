@@ -4,6 +4,7 @@ from agent.rpc import emit_account_unblocked_rpc
 from agent.db import (
     lookup_user,
     create_user,
+    is_valid_email,
     unblock_account,
 )
 
@@ -40,43 +41,70 @@ def tool_lookup_user(username: str) -> dict:
     }
 
 
-@function_tool(
-    description=(
-        "Create a new help desk user after collecting username, full name, and email."
-    )
-)
-def tool_create_user(
-    username: str,
-    full_name: str,
-    email: str,
-) -> dict:
-    """
-    Create a new helpdesk user.
-    """
-    created = create_user(
-        username=username,
-        full_name=full_name,
-        email=email,
-    )
+def create_user_tool_for(username: str):
+    """Return a creation tool that can create only the signed-in caller's account."""
 
-    if created:
+    @function_tool(
+        name="tool_create_user",
+        description=(
+            "Create the signed-in caller's Northwind account. Use only after the "
+            "caller has explicitly confirmed their full name and a valid email address. "
+            "Set confirmed to true only when the caller says yes to that confirmation."
+        ),
+    )
+    def tool_create_user(
+        full_name: str,
+        email: str,
+        confirmed: bool = False,
+        username: str | None = None,
+    ) -> dict:
+        """Create a confirmed account for the signed-in caller.
+
+        ``username`` is accepted only for compatibility with models that include
+        it in a tool call; the signed-in username captured by this tool is always
+        used instead.
+        """
+        if not confirmed:
+            return {
+                "created": False,
+                "reason": "confirmation_required",
+                "message": "Ask the caller to confirm the name and email before creating the account.",
+            }
+
+        if not is_valid_email(email):
+            return {
+                "created": False,
+                "reason": "invalid_email",
+                "message": "The email address is invalid. Ask for an address in the form name@example.com.",
+            }
+
+        created = create_user(
+            username=username,
+            full_name=full_name,
+            email=email,
+        )
+
+        if created:
+            return {
+                "created": True,
+                "username": username,
+                "full_name": full_name,
+                "email": email,
+                "status": "Active",
+                "message": f"User {username} has been created and is Active.",
+            }
+
         return {
-            "created": True,
+            "created": False,
             "username": username,
-            "full_name": full_name,
-            "email": email,
-            "status": "Active",
-            "message": f"User {username} has been created and is Active.",
+            "reason": "username_or_email_exists",
+            "message": (
+                f"Could not create user {username}. "
+                "The username or email may already exist."
+            ),
         }
 
-    return {
-        "created": False,
-        "username": username,
-        "message": (
-            f"Could not create user {username}. "
-            "The username or email may already exist."
-        ),
-    }
+    return tool_create_user
 
 
 @function_tool(
