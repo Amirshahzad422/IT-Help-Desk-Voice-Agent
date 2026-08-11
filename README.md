@@ -59,3 +59,29 @@ Open a new terminal:
 
 ```powershell
 scripts\run_frontend.bat
+```
+
+## Project Report Notes
+
+### Contributors
+
+- Track A: Musfirah Zunnoon
+- Track B: Sajeela Affaq Abbasi
+
+
+### Latency Tuning
+
+Latency was tuned by capping model output with `MAX_TOKENS = 80` and instructing the agent to answer in one or two short sentences.
+
+End-to-end latency reported by the application:
+
+| Turn | Latency |
+| --- | ---: |
+| 1 | 10,884 ms |
+| 2 | 4,401 ms |
+| 3 | 4,169 ms |
+| 4 | 4,116 ms |
+| 5 | 3,437 ms |
+| 6 | 3,892 ms |
+
+Average end-to-end latency: approximately **4.32 seconds**.
