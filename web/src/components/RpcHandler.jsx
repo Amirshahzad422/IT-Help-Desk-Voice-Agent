@@ -1,120 +1,101 @@
 import { useEffect } from "react";
 import { useRoomContext } from "@livekit/components-react";
-import toast from "react-hot-toast";
+import { RoomEvent } from "livekit-client";
+import { toast } from "react-hot-toast";
 
 function RpcHandler() {
   const room = useRoomContext();
 
   useEffect(() => {
     if (!room) {
-      console.log("RPC Handler: room not available");
+      console.log("RPC Handler: no room");
       return;
     }
 
-    const registerHandler = () => {
-      console.log("RPC Handler: room connected");
-      console.log("Registering RPC method: show_notification");
+    console.log("RPC Handler mounted");
+    console.log("Current room state:", room.state);
 
-      const handleNotification = async (request) => {
-        try {
-          console.log("RPC notification received:", request);
+    const handleShowNotification = async (data) => {
+      console.log("====================================");
+      console.log("RPC RECEIVED!");
+      console.log("RPC data:", data);
 
-          let data;
+      try {
+        let payload;
 
-          try {
-            const payload =
-              typeof request.payload === "string"
-                ? request.payload
-                : new TextDecoder().decode(request.payload);
-
-            data = JSON.parse(payload);
-          } catch {
-            data = {
-              type: "info",
-              message: String(request.payload),
-            };
-          }
-
-          console.log("RPC notification data:", data);
-
-          const type = data.type || "info";
-          const message =
-            data.message || "Agent notification received.";
-
-          switch (type) {
-            case "success":
-              toast.success(message);
-              break;
-
-            case "error":
-              toast.error(message);
-              break;
-
-            case "warning":
-              toast(message, {
-                icon: "⚠️",
-              });
-              break;
-
-            case "info":
-            default:
-              toast(message);
-              break;
-          }
-
-          return JSON.stringify({
-            success: true,
-          });
-
-        } catch (error) {
-          console.error("RPC notification error:", error);
-
-          return JSON.stringify({
-            success: false,
-          });
+        if (typeof data.payload === "string") {
+          payload = data.payload;
+        } else {
+          payload = new TextDecoder().decode(data.payload);
         }
-      };
 
-      room.localParticipant.registerRpcMethod(
-        "show_notification",
-        handleNotification
-      );
+        console.log("RPC payload:", payload);
 
-      console.log(
-        "RPC method registered successfully: show_notification"
-      );
+        const notification = JSON.parse(payload);
+
+        console.log("RPC notification:", notification);
+
+        if (notification.type === "success") {
+          toast.success(
+            notification.message ||
+              "Your account has been successfully unlocked.",
+            {
+              id: "account-unblocked-toast",
+              duration: 4000,
+              position: "top-right",
+            }
+          );
+        }
+      } catch (error) {
+        console.error("RPC processing error:", error);
+      }
+    };
+
+    const registerRpc = async () => {
+      try {
+        console.log("====================================");
+        console.log("REGISTERING RPC METHOD");
+        console.log("Method: show_notification");
+
+        await room.localParticipant.registerRpcMethod(
+          "show_notification",
+          handleShowNotification
+        );
+
+        console.log("====================================");
+        console.log("RPC REGISTERED SUCCESSFULLY!");
+        console.log("Method: show_notification");
+        console.log("====================================");
+      } catch (error) {
+        console.error("RPC REGISTRATION FAILED:", error);
+      }
     };
 
     if (room.state === "connected") {
-      registerHandler();
-    } else {
-      const handleConnected = () => {
-        registerHandler();
-      };
-
-      room.on("connected", handleConnected);
-
-      return () => {
-        room.off("connected", handleConnected);
-
-        try {
-          room.localParticipant.unregisterRpcMethod(
-            "show_notification"
-          );
-        } catch {
-          // Already unregistered
-        }
-      };
+      registerRpc();
     }
 
+    const handleConnected = () => {
+      console.log("RPC Handler detected LiveKit connected");
+      registerRpc();
+    };
+
+    room.on(RoomEvent.Connected, handleConnected);
+
     return () => {
+      console.log("RPC Handler cleanup");
+
+      room.off(RoomEvent.Connected, handleConnected);
+
       try {
         room.localParticipant.unregisterRpcMethod(
           "show_notification"
         );
-      } catch {
-        // Already unregistered
+      } catch (error) {
+        console.error("RPC unregister error:", error);
       }
+
+      toast.dismiss("account-unblocked-toast");
     };
   }, [room]);
 

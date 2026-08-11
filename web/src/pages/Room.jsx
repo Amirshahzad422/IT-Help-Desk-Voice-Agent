@@ -4,6 +4,7 @@ import {
   BarVisualizer,
   useParticipants,
   useVoiceAssistant,
+  useRoomContext,
 } from "@livekit/components-react";
 
 import CallHeader from "../components/room/CallHeader";
@@ -14,13 +15,46 @@ import TranscriptPanel from "../components/room/TranscriptPanel";
 import ControlBar from "../components/room/ControlBar";
 import RpcHandler from "../components/RpcHandler";
 
+import { useEffect } from "react";
+import { toast } from "react-hot-toast";
+
+
+function SetUserIdentity({ username }) {
+  const room = useRoomContext();
+
+  useEffect(() => {
+    if (!room || !username) return;
+
+    const normalizedUsername = username.trim().toLowerCase();
+
+    room.localParticipant
+      .setAttributes({
+        helpdesk_username: normalizedUsername,
+      })
+      .then(() => {
+        console.log(
+          "Help Desk username set:",
+          normalizedUsername
+        );
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to set Help Desk username:",
+          error
+        );
+      });
+  }, [room, username]);
+
+  return null;
+}
+
 
 function VoiceActivity() {
   const { state, audioTrack } = useVoiceAssistant();
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
-      <h2 className="text-xl font-bold mb-6">
+    <div>
+      <h2 className="text-xl font-semibold mb-4">
         Voice Activity
       </h2>
 
@@ -52,7 +86,7 @@ function RoomContent({
   const agentConnected = participants.length > 1;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen">
 
       {/* Play remote audio */}
       <RoomAudioRenderer />
@@ -117,14 +151,31 @@ function Room({
   userName,
   onLeave,
 }) {
+
+  const handleDisconnected = () => {
+    console.log("LiveKit room disconnected");
+
+    // Remove every active toast from this call
+    toast.dismiss();
+
+    // Return to the previous screen
+    onLeave();
+  };
+
+
   return (
     <LiveKitRoom
       serverUrl={tokenData.server_url}
       token={tokenData.token}
-      connect
-      audio
+      connect={true}
+      audio={true}
       video={false}
+      onDisconnected={handleDisconnected}
     >
+
+      <SetUserIdentity
+        username={userName}
+      />
 
       <RoomContent
         tokenData={tokenData}

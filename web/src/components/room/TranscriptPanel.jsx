@@ -2,6 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { RoomEvent } from "livekit-client";
 import { useRoomContext } from "@livekit/components-react";
 
+function isInternalToolPayload(text) {
+  if (typeof text !== "string") return false;
+
+  try {
+    const payload = JSON.parse(text.trim());
+    const name = payload?.name || payload?.function?.name;
+
+    return typeof name === "string" && name.startsWith("tool_");
+  } catch {
+    return false;
+  }
+}
+
 function TranscriptPanel() {
   const room = useRoomContext();
 
@@ -102,7 +115,9 @@ function TranscriptPanel() {
             Waiting for conversation...
           </div>
         ) : (
-          segments.map((segment) => {
+          segments
+            .filter((segment) => !isInternalToolPayload(segment.text))
+            .map((segment) => {
             const isUser =
               segment.participant?.identity ===
               room.localParticipant.identity;

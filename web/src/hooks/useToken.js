@@ -5,12 +5,12 @@ export default function useToken() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchToken = async () => {
+  const fetchToken = async (username) => {
     try {
       setLoading(true);
       setError("");
 
-      const data = await getToken();
+      const data = await getToken(username);
 
       return data;
     } catch (err) {

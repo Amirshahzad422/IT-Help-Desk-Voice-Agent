@@ -1,8 +1,11 @@
-from livekit.agents import function_tool
+from livekit.agents import function_tool, get_job_context
+from agent.rpc import emit_account_unblocked_rpc
 
 from agent.db import (
     lookup_user,
     create_user,
+    is_valid_email,
+    normalize_email,
     unblock_account,
 )
 
@@ -39,43 +42,75 @@ def tool_lookup_user(username: str) -> dict:
     }
 
 
-@function_tool(
-    description=(
-        "Create a new help desk user after collecting username, full name, and email."
-    )
-)
-def tool_create_user(
-    username: str,
-    full_name: str,
-    email: str,
-) -> dict:
-    """
-    Create a new helpdesk user.
-    """
-    created = create_user(
-        username=username,
-        full_name=full_name,
-        email=email,
-    )
+def create_user_tool_for(signed_in_username: str):
+    """Return a creation tool that can create only the signed-in caller's account."""
 
-    if created:
+    @function_tool(
+        name="tool_create_user",
+        description=(
+            "Create the signed-in caller's Northwind account. Use only after the "
+            "caller has explicitly confirmed their full name and a valid email address. "
+            "Set confirmed to true only when the caller says yes to that confirmation."
+        ),
+    )
+    def tool_create_user(
+        full_name: str,
+        email: str,
+        confirmed: bool = False,
+        username: str | None = None,
+    ) -> dict:
+        """Create a confirmed account for the signed-in caller.
+
+        ``username`` is accepted only for compatibility with models that include
+        it in a tool call; the signed-in username captured by this tool is always
+        used instead.
+        """
+        if not confirmed:
+            return {
+                "created": False,
+                "reason": "confirmation_required",
+                "message": "Ask the caller to confirm the name and email before creating the account.",
+            }
+
+        email = normalize_email(email)
+
+        if not is_valid_email(email):
+            return {
+                "created": False,
+                "reason": "invalid_email",
+                "message": (
+                    "I have your full name. Please provide the email address "
+                    "in the form name@example.com."
+                ),
+            }
+
+        created = create_user(
+            username=signed_in_username,
+            full_name=full_name,
+            email=email,
+        )
+
+        if created:
+            return {
+                "created": True,
+                "username": signed_in_username,
+                "full_name": full_name,
+                "email": email,
+                "status": "Active",
+                "message": f"User {signed_in_username} has been created and is Active.",
+            }
+
         return {
-            "created": True,
-            "username": username,
-            "full_name": full_name,
-            "email": email,
-            "status": "Active",
-            "message": f"User {username} has been created and is Active.",
+            "created": False,
+            "username": signed_in_username,
+            "reason": "username_or_email_exists",
+            "message": (
+                f"Could not create user {signed_in_username}. "
+                "The username or email may already exist."
+            ),
         }
 
-    return {
-        "created": False,
-        "username": username,
-        "message": (
-            f"Could not create user {username}. "
-            "The username or email may already exist."
-        ),
-    }
+    return tool_create_user
 
 
 @function_tool(
@@ -84,22 +119,42 @@ def tool_create_user(
         "Use this only after confirming the user exists and their account is locked."
     )
 )
-def tool_unblock_account(username: str) -> dict:
-    """
-    Unlock a user's account.
-    """
-    success = unblock_account(username)
+async def tool_unblock_account(username: str) -> dict:
+    user = lookup_user(username)
 
-    if success:
+    if user is None:
         return {
-            "unblocked": True,
+            "unblocked": False,
             "username": username,
-            "status": "Active",
-            "message": f"Account {username} has been unblocked.",
+            "message": f"Could not unblock account {username}. User was not found.",
         }
 
+    if user["status"] != "Locked":
+        return {
+            "unblocked": False,
+            "username": user["username"],
+            "status": user["status"],
+            "message": (
+                f"Account {user['username']} is {user['status']}; "
+                "only Locked accounts can be unblocked."
+            ),
+        }
+
+    if not unblock_account(user["username"]):
+        return {
+            "unblocked": False,
+            "username": user["username"],
+            "message": "The account could not be unblocked.",
+        }
+
+    # Runs only after SQLite successfully changed Locked → Active.
+    job_ctx = get_job_context(required=False)
+    if job_ctx is not None:
+        await emit_account_unblocked_rpc(job_ctx, user["username"])
+
     return {
-        "unblocked": False,
-        "username": username,
-        "message": f"Could not unblock account {username}. User was not found.",
+        "unblocked": True,
+        "username": user["username"],
+        "status": "Active",
+        "message": f"Account {user['username']} has been unblocked.",
     }
